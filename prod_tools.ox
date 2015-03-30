@@ -59,4 +59,85 @@ db_expand(const asNames){
         asExpanded ~= {asNames[i]}~{0,0};
     return asExpanded;
 }
-	  
+
+fPlotPartial(const sXname, const oM, const m_iTl,const dWidth){
+/* Plots the dependent variable against the named sXname variable, also for flexible functional form
+ *  sXname: Name of variable as used in .Select(X_VAR, ...)
+ *  oM: instance of database (or derived) class, eg fob=new Sfamb();
+ *  m_iTl: int to indicate function type
+ *    0: only first order terms
+ *    1: translog on all X_Vars
+ *    >2: translog on first m_iTL vars
+ *    <0: as above, negative sign indicates that all regressors are negative (output distance functions)
+ * dWidth: between 0 and 1; middle dWidth% of sXName are plotted on the abscissa
+*/
+//get Parameter names
+decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
+	iOffset=0, asNames, asNamesX, asNameY;
+  asNames=oM.GetParNames();
+  maxParIdx = strfind(asNames,"ln{\sigma_v}");
+  // some error checking
+  if (maxParIdx == -1){
+    eprint("Error with finding sigma_v in the list of parameter names, exiting...");
+	exit(1);
+  }
+  if (strfind(asNames,sXname) == -1){
+    eprint("Error with finding ",sXname," in the list of parameter names, exiting...");
+	exit(1);
+  }
+
+  vPar=oM.GetPar()[:maxParIdx-1];
+  oM.GetGroupNames(X_VAR,&asNamesX);
+  oM.GetGroupNames(Y_VAR,&asNameY);
+  if (m_iTl < 0){
+    i = fabs(m_iTl);
+	i = sizeof(asNamesX) - (i+1)*(i+2)/2	+i;
+  	asNamesX=asNames[:i];
+  }
+
+  // if squares and interactions are not constructed from all vars, an offset is required later
+  if (m_iTl < 0) bSign=-1;
+  if (bSign * m_iTl > 1) iOffset = sizeof(asNamesX)-(bSign*m_iTl)-1;
+//  print(iOffset); exit(0);
+  decl vTmp=vPar[0];
+  //first order terms
+  for (i=1;i<sizeof(asNamesX);++i)
+  	 vTmp += asNames[i] == sXname
+	 	? oM.GetVar(asNames[i]) * vPar[i]
+		: meanc(oM.GetVar(asNames[i])) * vPar[i];
+
+  if ((bSign*m_iTl) >0 ){
+  // square terms
+	for (i = sizeof(asNamesX); i < 2*sizeof(asNamesX)-iOffset-1; ++i){
+	  sTmp=asNames[i];
+	  sTmp= sTmp[strfind(sTmp,".5*")+3:strfind(sTmp,"^")-1];
+  	  vTmp += sTmp == sXname
+	 	? 0.5 * oM.GetVar(sTmp).^2 * vPar[i]
+		: 0.5 * meanc(oM.GetVar(sTmp)).^2 * vPar[i];
+	}
+  // interaction terms    
+  	for (i = 2*sizeof(asNamesX)-iOffset-1; i < maxParIdx; ++i){
+      sTmp=asNames[i];//println(sTmp);
+	  sTmp1 =sTmp[:strfind(sTmp,"*")-1];
+	  sTmp2 = sTmp[strfind(sTmp,"*")+1:];
+	  if (sTmp1 == sXname)
+	    vTmp += oM.GetVar(sTmp1).* meanc(oM.GetVar(sTmp2)) * vPar[i];
+	  else if (sTmp2 == sXname)
+		  vTmp +=	oM.GetVar(sTmp2).* meanc(oM.GetVar(sTmp1)) * vPar[i];
+	    else vTmp += meanc(oM.GetVar(sTmp1)).* meanc(oM.GetVar(sTmp2)) * vPar[i];
+    }
+  }
+//	print(meanc(oM.GetVar("lnQ")~vTmp));
+	// for smooth lines, plot data need to be sorted ...
+	decl mOut;
+	mOut = exp(vTmp) ~ exp(bSign*oM.GetVar(sXname));
+	if (strfind(sXname,asNameY[0])> -1) mOut[][1] = mOut[][1] .* mOut[][0];
+	mOut = sortbyc(mOut,1);
+	//trim; plot only the middle dWidth %
+	mOut = mOut[0.5*(1-dWidth)*rows(mOut):0.5*(1+dWidth)*rows(mOut)][];
+	DrawXMatrix(0,mOut[][0]',"Output",mOut[][1]',sXname,2,2);
+	DrawTitle(0,"Partial frontier plot for exp("+sXname+")");
+	ShowDrawWindow();
+//  print(asX);
+return 1;
+}
