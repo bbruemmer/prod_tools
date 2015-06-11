@@ -60,7 +60,7 @@ db_expand(const asNames){
     return asExpanded;
 }
 
-fPlotPartial(const sXname, const oM, const m_iTl,const dWidth){
+fPlotPartial(const sXname, const oM, const m_iTl,const dWidth, ...){
 /* Plots the dependent variable against the named sXname variable, also for flexible functional form
  *  sXname: Name of variable as used in .Select(X_VAR, ...)
  *  oM: instance of database (or derived) class, eg fob=new Sfamb();
@@ -70,10 +70,20 @@ fPlotPartial(const sXname, const oM, const m_iTl,const dWidth){
  *    >2: translog on first m_iTL vars
  *    <0: as above, negative sign indicates that all regressors are negative (output distance functions)
  * dWidth: between 0 and 1; middle dWidth% of sXName are plotted on the abscissa
+ * bLn: TRUE for logarithmic functional forms (default: TRUE)
 */
 //get Parameter names
 decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
-	iOffset=0, asNames, asNamesX, asNameY;
+	iOffset=0, asNames, asNamesX, asNameY, args = va_arglist(), bLn=TRUE;
+
+  if (sizeof(args) > 1){
+		eprint("Too many arguments"); exit(9);
+	}
+
+  if (sizeof(args) > 0)
+		bLn = args[0];
+ 
+
   asNames=oM.GetParNames();
   maxParIdx = strfind(asNames,"ln{\sigma_v}");
   // some error checking
@@ -110,7 +120,7 @@ decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
   // square terms
 	for (i = sizeof(asNamesX); i < 2*sizeof(asNamesX)-iOffset-1; ++i){
 	  sTmp=asNames[i];
-	  sTmp= sTmp[strfind(sTmp,".5*")+3:strfind(sTmp,"^")-1];
+	  sTmp= sTmp[strfind(sTmp,".5*")+3:strfind(sTmp,"^")-1];println(sTmp);
   	  vTmp += sTmp == sXname
 	 	? 0.5 * oM.GetVar(sTmp).^2 * vPar[i]
 		: 0.5 * meanc(oM.GetVar(sTmp)).^2 * vPar[i];
@@ -130,11 +140,15 @@ decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
 //	print(meanc(oM.GetVar("lnQ")~vTmp));
 	// for smooth lines, plot data need to be sorted ...
 	decl mOut;
-	mOut = exp(vTmp) ~ exp(bSign*oM.GetVar(sXname));
+	if (bLn) mOut = exp(vTmp) ~ exp(bSign*oM.GetVar(sXname));
+	  else
+	  	mOut = vTmp~(bSign*oM.GetVar(sXname));
 	if (strfind(sXname,asNameY[0])> -1) mOut[][1] = mOut[][1] .* mOut[][0];
 	mOut = sortbyc(mOut,1);
 	//trim; plot only the middle dWidth %
+	print(0.5*(1-dWidth)*rows(mOut)," to ", 0.5*(1+dWidth)*rows(mOut));
 	mOut = mOut[0.5*(1-dWidth)*rows(mOut):0.5*(1+dWidth)*rows(mOut)][];
+	println(" equal to ", rows(mOut), " observations");
 	DrawXMatrix(0,mOut[][0]',"Output",mOut[][1]',sXname,2,2);
 	DrawTitle(0,"Partial frontier plot for exp("+sXname+")");
 	ShowDrawWindow();
