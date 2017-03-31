@@ -46,9 +46,8 @@ translog(const data, const flag, const asNames, ...)
         //print("done.\n");
         if (flag){
             out= -out;
-			println("The whole X-Matrix has been multiplied by -1!");
-//            for (i=0;i<sizeof(asNames[0]);i++)
-//                asNames[0][i]=sprint("-",asNames[0][i]);
+            for (i=0;i<sizeof(asNames[0]);i++)
+                asNames[0][i]=sprint("-",asNames[0][i]);
         }
         return out;
 }
@@ -121,7 +120,7 @@ decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
   // square terms
 	for (i = sizeof(asNamesX); i < 2*sizeof(asNamesX)-iOffset-1; ++i){
 	  sTmp=asNames[i];
-	  sTmp= sTmp[strfind(sTmp,".5*")+3:strfind(sTmp,"^")-1];println(sTmp);
+	  sTmp= sTmp[strfind(sTmp,".5*")+3:strfind(sTmp,"^")-1];
   	  vTmp += sTmp == sXname
 	 	? 0.5 * oM.GetVar(sTmp).^2 * vPar[i]
 		: 0.5 * meanc(oM.GetVar(sTmp)).^2 * vPar[i];
@@ -149,7 +148,7 @@ decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
 	//trim; plot only the middle dWidth %
 	print(0.5*(1-dWidth)*rows(mOut)," to ", 0.5*(1+dWidth)*rows(mOut));
 	mOut = mOut[0.5*(1-dWidth)*rows(mOut):0.5*(1+dWidth)*rows(mOut)][];
-	println(" equal to ", rows(mOut), " observations");
+	println(" equal to ", rows(mOut), "observations");
 	DrawXMatrix(0,mOut[][0]',"Output",mOut[][1]',sXname,2,2);
 	DrawTitle(0,"Partial frontier plot for exp("+sXname+")");
 	ShowDrawWindow();
