@@ -98,8 +98,8 @@ decl vMeanVars, vPar, i, vIdx, maxParIdx, sTmp, sTmp1, sTmp2, bSign=1,
   }
 
   vPar=oM.GetPar()[:maxParIdx-1];
-  oM.GetGroupNames(X_VAR,&asNamesX);
-  oM.GetGroupNames(Y_VAR,&asNameY);
+  oM.GetGroupNames(0,&asNamesX);
+  oM.GetGroupNames(1,&asNameY);
   if (m_iTl < 0){
     i = fabs(m_iTl);
 	i = sizeof(asNamesX) - (i+1)*(i+2)/2	+i;
